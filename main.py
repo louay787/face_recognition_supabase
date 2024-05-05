@@ -1,72 +1,120 @@
+import asyncio
+from datetime import datetime
+import logging
+import os
 import cv2
 import numpy as np
-from recognition.encodings_storage import EncodingLocalStorage
-from recognition.recognition import Recognition
-from Attendance import Attendance
-from datetime import datetime
-# from Attendance_Report import AttendanceReporter
 
-supabase_url = "https://mhfnttlxzmusbqdnyuum.supabase.co"
-supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZm50dGx4em11c2JxZG55dXVtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcwNzMzMjM2MywiZXhwIjoyMDIyOTA4MzYzfQ.KUkkkp6nutcdt_t2LFvcYbHeE9xsW5wywzxT6qd51kM"
-# reporter = AttendanceReporter(supabase_url, supabase_key)
+# from datetime import datetime
+from dotenv import load_dotenv
+from redis_dict import RedisDict
+from utils import Recognition, Supabase
+from utils.redis import ProcessCommunication
 
-attendance = Attendance(supabase_url, supabase_key)
+load_dotenv()
 
-records = attendance.fetch_records()
-print("Attendance Records:")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+DATASET_BUCKET_NAME = os.getenv("DATASET_BUCKET_NAME")
+CAMERA_LOG_BUCKET_NAME = os.getenv("CAMERA_LOG_BUCKET_NAME")
 
-# Generate a daily report for a specific date
-# specific_date = datetime(2024, 1, 31)
+LOGGER = logging.getLogger(__name__)
 
-# reporter.generate_daily_report(specific_date)
-
-    # Generate a weekly report for a specific week
-# start_date_of_week = datetime(2024, 1, 29)  # Assuming Monday is the start of the week
-# reporter.generate_weekly_report(start_date_of_week)
+recognition_model = Recognition()
+database = Supabase(SUPABASE_URL, SUPABASE_KEY)
 
 
+def debugging_highlight_recognized_faces(frame, faces):
 
-# reporter = AttendanceReporter(supabase_url, supabase_key)
-    
+    for face in faces:
+        id, location = face["id"], face["location"]
+        (top, right, bottom, left) = location
+        # Scale back up face locations since the frame we detected in was scaled to 1/4 size
+        top *= 4
+        right *= 4
+        bottom *= 4
+        left *= 4
+        # Draw a box around the face
 
-VIDEO_FEED = cv2.VideoCapture(0)
+        cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
-encodings_storage = EncodingLocalStorage('images')
-face_recognition = Recognition(encodings_storage=encodings_storage)
+        # Draw a label with a name below the face
+        cv2.rectangle(
+            frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED
+        )
+        font = cv2.FONT_HERSHEY_DUPLEX
+        cv2.putText(frame, id, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
-while True:
-    ret, frame = VIDEO_FEED.read()
 
-    small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-    rgb_small_frame = np.ascontiguousarray(small_frame[:, :, ::-1])
+async def start_training_model():
+    dataset = database.fetch_dataset(DATASET_BUCKET_NAME)
+    recognition_model.trained_dataset(dataset)
 
-    face_encodings, face_locations = face_recognition.face_locations_encodings(rgb_small_frame)
-    matches = face_recognition.find_matches(face_encodings, face_locations)
-    if matches:
-        # Display the results
-        for match in matches:
-            name = match['name']
-            attendance.mark_attendance(name,datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-            (top, right, bottom, left) = match['location'] 
-            # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-            top *= 4
-            right *= 4
-            bottom *= 4
-            left *= 4
-            # Draw a box around the face
-           
-            cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
-            # Draw a label with a name below the face
-            cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
-            font = cv2.FONT_HERSHEY_DUPLEX
-            cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
-        
-    # Display the resulting image
-    cv2.imshow('Video', frame)
-    # Hit 'q' on the keyboard to quit!
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+async def listen(debug=False):
+    video_feed = cv2.VideoCapture(0)
+    process_communication = ProcessCommunication()
 
-VIDEO_FEED.release()
-cv2.destroyAllWindows()
+    await start_training_model()
+
+    while not process_communication.get_control_commands()["kill"]:
+
+        commands = process_communication.get_control_commands()
+
+        if commands["stop"]:
+            continue
+
+        if commands["train-model"]["run"]:
+            await start_training_model(commands["train_model"]["target"])
+            process_communication.stop_training()
+
+        try:
+            _, frame = video_feed.read()
+
+            if frame is None:
+                # Handle no frame read error (e.g., video ended)
+                LOGGER.error("No frame captured from video feed")
+                break
+
+            small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+            rgb_small_frame = np.ascontiguousarray(small_frame[:, :, ::-1])
+
+            matches = recognition_model.detect_faces(rgb_small_frame)
+
+            for match in matches:
+                id, known = match["id"], match["known"]
+                if known:
+                    cached_attendance = process_communication.get_last_attendance(id)
+
+                    if (
+                        not cached_attendance
+                        or (datetime.now() - cached_attendance).total_seconds() > 60
+                    ):
+                        await process_communication.cache_last_attendance(id)
+                        await database.mark_attendance(
+                            id,
+                            cv2.imencode(".png", frame)[1].tobytes(),
+                            CAMERA_LOG_BUCKET_NAME,
+                        )
+
+                else:
+                    # pass
+                    await database.mark_unknown(
+                        cv2.imencode(".png", frame)[1].tobytes(), CAMERA_LOG_BUCKET_NAME
+                    )
+
+        except Exception as e:
+            LOGGER.error(e)
+
+        if debug:
+            debugging_highlight_recognized_faces(frame, matches)
+            cv2.imshow("Video", frame)
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+
+    video_feed.release()
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    asyncio.run(listen(debug=True))

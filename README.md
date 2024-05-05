@@ -4,6 +4,41 @@
 
 
 
+# How to run ?
+
+- Install os dependencies
+
+  ```bash
+  sudo apt-get install build-essential cmake pkg-config
+  sudo apt-get install libx11-dev libatlas-base-dev
+  sudo apt-get install libgtk-3-dev libboost-python-dev
+  ```
+
+- Install dlib 
+
+  ```bash
+  git clone https://github.com/davisking/dlib.git dlib
+  cd  dlib && python3 setup.py install
+  ```
+
+- Create a venv and Install debs from requirements.txt
+
+  ```bash
+  python -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+  ```
+
+- Execute this command then configure  your secrets inside .env file
+
+  ```bash
+  cp .env.example .env
+  ```
+
+- Run script
+
+- ```
+  python main.py
+  ```
+
 ### Resources
 
 - https://github.com/medsriha/real-time-face-recognition
@@ -11,19 +46,17 @@
 - https://towardsdatascience.com/real-time-face-recognition-an-end-to-end-project-b738bb0f7348
 - https://github.com/Arhanmansoori/FACE-RECOGNITION-ATTENDANCE-SYSTEM-USING-PYTHON-WITH-REAL-TIME-DATA-BASE-AND-EXCEL-RECORD/commit/817bd09d7c3b10469faf347247896bd84b0cbec7
 - https://supabase.com/docs/reference/python/introduction 'base de donnee'
-https://www.youtube.com/watch?v=HQ_ytw58tC4s
+  https://www.youtube.com/watch?v=HQ_ytw58tC4s
            ##############
 
 # To do List
--unkown faces not detectedd (wkarzeeeet zebi lmaaaaaaaaaax) sibonn
-
--in regestir class make a classifier job that ask for your role and add it to supabase table to make it clear:
-(ki tamel rehister labeed jdid yotleeb alik ismek w role mte3k par exemple chef personnel/khadeem .. fi partie supabase lezm tetzed parite f tableau l role  w fpartie code class Attendance lezm tetzed m3a kol regsieter jdida y aski e role  )
-
--in register add a key to take picture (time to change position for fast detection )
--connection beetwn app and code 
--search for app to make statics from data base and relate them to mobile app 
--learn flutter and android studio 
+- [x] Fix uknown faces not detected
+- [ ] -in regestir class make a classifier job that ask for your role and add it to supabase table to make it clear:
+  (ki tamel rehister labeed jdid yotleeb alik ismek w role mte3k par exemple chef personnel/khadeem .. fi partie supabase lezm tetzed parite f tableau l role  w fpartie code class Attendance lezm tetzed m3a kol regsieter jdida y aski e role  )
+- [ ] -in register add a key to take picture (time to change position for fast detection )
+  -connection beetwn app and code 
+  -search for app to make statics from data base and relate them to mobile app 
+  -learn flutter and android studio 
 
          ###################
 
@@ -32,17 +65,17 @@ https://www.youtube.com/watch?v=HQ_ytw58tC4s
 ******** supabase / python code : attendance mangment system ********
 
 
- fama deux posibilite y ema l'attendance managment tsyr fel python code(kima andhla + kima-) 
+ fama deux posibilite y ema l'attendance managment tsyr fel python code(kima andhla + kima-) ****
 yema direct ma lapplication (kifkif)
 When you have a mobile app for attendance management, you have a couple of options for how to relate it to the Supabase database:
 
 1. **Direct Integration with Supabase:**
    In this approach, your mobile app communicates directly with the Supabase database to perform operations such as marking attendance, fetching attendance records, generating reports, etc. Your mobile app sends requests to Supabase's REST API or uses Supabase's client libraries to interact with the database.
- This approach simplifies the architecture by eliminating the need for an intermediary Python codebase.
+    This approach simplifies the architecture by eliminating the need for an intermediary Python codebase.
 
 2. **Indirect Integration via Python Code:**
    Alternatively, you can maintain a Python backend that serves as an intermediary between your mobile app and the Supabase database. Your mobile app communicates with the Python backend through an API (e.g., REST API), and the Python backend, in turn, interacts with the Supabase database using Supabase's client libraries.
- This approach allows you to add business logic, perform data validation, or implement additional features in the Python backend before interacting with the database.
+    This approach allows you to add business logic, perform data validation, or implement additional features in the Python backend before interacting with the database.
 
 Choosing between these approaches depends on various factors such as the complexity of your application, the need for business logic or data processing, security requirements, scalability considerations, and team expertise.
 
@@ -76,7 +109,7 @@ camera feed option in app that give access to admin to open the camera
 
 
 ### Rasberry pi setup
- 
+
  methode rasberrylocalAdress   ping raspberrypi.local
  methode ssh commands: 
 -ssh pi@adrsIP
@@ -101,7 +134,7 @@ terminal  : wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tar.xz
             python3 -m pip install opencv-python
             python3 -m pip install numpy
             python3  -m pip install flask
-            
+
 
 
 
