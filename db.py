@@ -24,7 +24,7 @@ class Supabase:
 
         return sign_url["signedURL"] if "signedURL" in sign_url else None
 
-    async def mark_attendance(self, user_id, captured_face, bucket_name):
+    def mark_attendance(self, user_id, captured_face, bucket_name):
         file_name = f"{user_id}/{uuid.uuid4().hex}"
 
         signed_url = self.upload_camera_logs_with_signed_url(
@@ -41,7 +41,7 @@ class Supabase:
         if "error" in data:
             LOGGER.error("Failed to mark attendance: ", data["error"])
 
-    async def mark_unknown(self, captured_face, bucket_name):
+    def mark_unknown(self, captured_face, bucket_name):
         file_name = f"unknown/{uuid.uuid4().hex}"
         signed_url = self.upload_camera_logs_with_signed_url(
             file_name, captured_face, bucket_name
@@ -51,7 +51,7 @@ class Supabase:
         if "error" in data:
             LOGGER.error("Failed to mark unknown: ", data["error"])
 
-    def fetch_dataset(self, bucket_name, folder=None):
+    def fetch_dataset(self, bucket_name, folder=None):        
         dataset = {}
         files = (
             [
@@ -65,7 +65,7 @@ class Supabase:
                 for file in self._client.storage.from_(bucket_name).list(folder["name"])
             ]
         )
-
+            
         for file_path in files:
             user_id, _ = file_path.split("/")
             image_bytes = self._client.storage.from_(bucket_name).download(file_path)
