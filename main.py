@@ -1,18 +1,19 @@
-import asyncio
-from datetime import datetime
-import logging
 import os
-from typing import Dict
-from urllib.parse import urlparse
-import uuid
 import cv2
-from dotenv import load_dotenv
-import numpy as np
+import uuid
+import asyncio
+import logging
 import threading
+import numpy as np
 from io import BytesIO
+from db import Supabase
+from typing import Dict
+
 import face_recognition
 
-from db import Supabase
+from datetime import datetime
+from dotenv import load_dotenv
+from urllib.parse import urlparse
 from realtime.connection import Socket
 
 load_dotenv()
@@ -144,23 +145,6 @@ def detect_faces(encodings_storage: Dict, numpy_image_data):
 
 
 def face_recognition_listener():
-    def debugging_highlight_recognized_faces(frame, faces):
-        for face in faces:
-            id, location = face["id"], face["location"]
-            (top, right, bottom, left) = location
-            top *= 4
-            right *= 4
-            bottom *= 4
-            left *= 4
-            cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-            cv2.rectangle(
-                frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED
-            )
-            font = cv2.FONT_HERSHEY_DUPLEX
-            cv2.putText(
-                frame, id, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1
-            )
-
     global ATTENDANCE_DB
     global START_TRAINING_MODEL
 
@@ -214,8 +198,26 @@ def face_recognition_listener():
                 )
 
             if DEBUG:
-                debugging_highlight_recognized_faces(frame, matches)
-
+                # Show rectangle
+                for face in matches:
+                    id, location = face["id"], face["location"]
+                    (top, right, bottom, left) = location
+                    top *= 4
+                    right *= 4
+                    bottom *= 4
+                    left *= 4
+                    cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+                    cv2.rectangle(
+                        frame,
+                        (left, bottom - 35),
+                        (right, bottom),
+                        (0, 0, 255),
+                        cv2.FILLED,
+                    )
+                    font = cv2.FONT_HERSHEY_DUPLEX
+                    cv2.putText(
+                        frame, id, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1
+                    )
             cv2.imshow("Video", frame)
 
             if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -235,6 +237,3 @@ if __name__ == "__main__":
     threading.Thread(target=model_training_listener, daemon=True).start()
     threading.Thread(target=db_attendance_listener, daemon=True).start()
     face_recognition_listener()
-
-    while True:
-        pass
