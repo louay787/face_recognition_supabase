@@ -57,7 +57,9 @@ def db_attendance_listener():
                             LOGGER.info(f"Marked attendance for user {id}")
                             # Led green
                         else:
-                            database.mark_unknown(frame_bytes, CAMERA_LOG_BUCKET_NAME)
+                            database.mark_unknown(
+                                id, frame_bytes, CAMERA_LOG_BUCKET_NAME
+                            )
                             LOGGER.info(f"Marked unknown for user {id}")
                             # led red
 
@@ -92,6 +94,7 @@ def detect_faces(encodings_storage: Dict, numpy_image_data):
     if len(encodings_storage.keys()) == 0:
         return result
 
+    confidence_threshold = 0.65  # Tailor as needed
     face_locations = face_recognition.face_locations(numpy_image_data)
     face_encodings = face_recognition.face_encodings(numpy_image_data, face_locations)
 
@@ -99,10 +102,6 @@ def detect_faces(encodings_storage: Dict, numpy_image_data):
         found_match = False
 
         for id, known_encodings in encodings_storage.items():
-            if not any(face_encoding):
-                continue
-
-            confidence_threshold = 0.65  # Tailor as needed
             distances = face_recognition.face_distance(known_encodings, face_encoding)
             min_distance = min(distances)
 
@@ -112,18 +111,18 @@ def detect_faces(encodings_storage: Dict, numpy_image_data):
                     {
                         "id": id,
                         "location": face_location,
-                        "known": "unknown" in id,
+                        "known": not id.startswith("unknown"),
                     }
                 )
                 break
 
         if not found_match:
             unknown = {
-                "id": f"unknown-{uuid.UUID()}",
+                "id": f"unknown-{uuid.uuid4()}",
                 "location": face_location,
                 "known": False,
             }
-            encodings_storage[unknown["id"]] = face_encodings
+            encodings_storage[unknown["id"]] = [face_encoding]
             result.append(unknown)
 
     return result
@@ -226,7 +225,7 @@ def face_recognition_listener():
                 break
 
         except Exception as e:
-            print(e)
+            print("error", e)
             LOGGER.error(e)
 
     video_feed.release()
