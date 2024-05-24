@@ -55,9 +55,11 @@ def db_attendance_listener():
                                 id, frame_bytes, CAMERA_LOG_BUCKET_NAME
                             )
                             LOGGER.info(f"Marked attendance for user {id}")
+                            # Led green
                         else:
                             database.mark_unknown(frame_bytes, CAMERA_LOG_BUCKET_NAME)
                             LOGGER.info(f"Marked unknown for user {id}")
+                            # led red
 
                     except Exception as E:
                         LOGGER.error("Failed to insert to db: ", E)
@@ -224,6 +226,7 @@ def face_recognition_listener():
                 break
 
         except Exception as e:
+            print(e)
             LOGGER.error(e)
 
     video_feed.release()
