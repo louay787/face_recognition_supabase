@@ -65,25 +65,7 @@ def db_attendance_listener():
                     ATTENDANCE_CACHE[id] = datetime.now()
 
 
-def fetch_train_dataset():
-    global START_TRAINING_MODEL
-
-    trained_dataset = {}
-    dataset = database.fetch_dataset(DATASET_BUCKET_NAME)
-    for user_id, user_faces in dataset.items():
-        for image_bytes in user_faces:
-            image_ = face_recognition.load_image_file(BytesIO(image_bytes))
-            face_encodings = face_recognition.face_encodings(image_)
-
-            if not face_encodings:
-                continue
-
-            trained_dataset.setdefault(user_id, []).extend(face_encodings)
-    return trained_dataset
-
-
 def model_training_listener():
-
     def callback(payload):
         global START_TRAINING_MODEL
         LOGGER.info("Received training event")
@@ -98,6 +80,7 @@ def model_training_listener():
     channel_1 = realtime_listener.set_channel("realtime:*")
     channel_1.join().on("INSERT", callback)
     callback("initial train")
+    LOGGER.info("Preparing model training worker")
     realtime_listener.listen()
 
 
@@ -142,6 +125,23 @@ def detect_faces(encodings_storage: Dict, numpy_image_data):
             result.append(unknown)
 
     return result
+
+
+def fetch_train_dataset():
+    global START_TRAINING_MODEL
+
+    trained_dataset = {}
+    dataset = database.fetch_dataset(DATASET_BUCKET_NAME)
+    for user_id, user_faces in dataset.items():
+        for image_bytes in user_faces:
+            image_ = face_recognition.load_image_file(BytesIO(image_bytes))
+            face_encodings = face_recognition.face_encodings(image_)
+
+            if not face_encodings:
+                continue
+
+            trained_dataset.setdefault(user_id, []).extend(face_encodings)
+    return trained_dataset
 
 
 def face_recognition_listener():
