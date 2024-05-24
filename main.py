@@ -225,7 +225,6 @@ def face_recognition_listener():
                 break
 
         except Exception as e:
-            print("error", e)
             LOGGER.error(e)
 
     video_feed.release()
