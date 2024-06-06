@@ -6,8 +6,8 @@ from Attendance import Attendance
 from datetime import datetime
 # from Attendance_Report import AttendanceReporter
 
-supabase_url = "https://mhfnttlxzmusbqdnyuum.supabase.co"
-supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oZm50dGx4em11c2JxZG55dXVtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcwNzMzMjM2MywiZXhwIjoyMDIyOTA4MzYzfQ.KUkkkp6nutcdt_t2LFvcYbHeE9xsW5wywzxT6qd51kM"
+supabase_url = "supbase-url"
+supabase_key = "supabase-key"
 # reporter = AttendanceReporter(supabase_url, supabase_key)
 
 attendance = Attendance(supabase_url, supabase_key)
